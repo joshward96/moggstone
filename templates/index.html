@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deckgame</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ==================== LANDING VIEW ==================== -->
+<div id="landing-view">
+  <div class="landing-card">
+    <h1>Deckgame</h1>
+    <div class="form-group">
+      <label for="session-input">Session ID</label>
+      <input id="session-input" type="text" placeholder="leave blank to generate" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label>Player</label>
+      <div class="player-selector">
+        <button class="player-btn active" data-player="1">Player 1</button>
+        <button class="player-btn" data-player="2">Player 2</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="deck-hash-input">Deck Hash <span style="font-weight:400;color:#aaa;">(optional)</span></label>
+      <div style="display:flex;gap:6px;">
+        <input id="deck-hash-input" type="text" placeholder="paste deck hash or build one below" autocomplete="off" style="flex:1;" />
+        <button id="clear-hash-btn" class="secondary-btn" title="Clear deck hash">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button id="join-btn" class="primary-btn" style="flex:1;">Create / Join Game</button>
+      <button id="open-deckbuilder-btn" class="secondary-btn">Build Deck</button>
+    </div>
+    <p id="landing-error" class="error-text"></p>
+  </div>
+</div>
+
+<!-- ==================== DECK BUILDER VIEW ==================== -->
+<div id="deckbuilder-view" class="hidden">
+  <div class="db-header">
+    <button id="db-back-btn" class="secondary-btn">← Back</button>
+    <h2>Deck Builder</h2>
+    <span id="db-hash-indicator" class="db-hash-indicator hidden">Hash copied to lobby</span>
+  </div>
+
+  <div class="db-class-tabs">
+    <button class="db-class-tab active" data-class="ice_witch">Ice Witch</button>
+    <button class="db-class-tab" data-class="drum_wizard">Drum Wizard</button>
+    <button class="db-class-tab" data-class="blood_witch">Blood Witch</button>
+  </div>
+
+  <div class="db-layout">
+
+    <!-- Left: card browser -->
+    <div class="db-card-browser">
+      <div class="db-filters">
+        <button class="db-filter active" data-filter="all">All</button>
+        <button class="db-filter" data-filter="creature">Creatures</button>
+        <button class="db-filter" data-filter="spell">Spells</button>
+        <button class="db-filter" data-filter="buff">Buffs</button>
+      </div>
+      <div class="db-section-label">Class Cards</div>
+      <div id="db-class-cards"></div>
+      <div class="db-section-label">Neutral Cards</div>
+      <div id="db-neutral-cards"></div>
+    </div>
+
+    <!-- Right: deck panel -->
+    <div class="db-deck-panel">
+      <div class="db-deck-header">
+        <span>My Deck</span>
+        <span id="db-count" class="db-count">0 / 20</span>
+      </div>
+
+      <div id="db-deck-list" class="db-deck-list"></div>
+
+      <div class="db-deck-actions">
+        <button id="db-clear-deck-btn" class="secondary-btn">Clear</button>
+        <button id="db-generate-hash-btn" class="primary-btn" disabled>Generate Hash</button>
+      </div>
+
+      <div id="db-hash-area" class="db-hash-area hidden">
+        <label>Deck Hash</label>
+        <div class="db-hash-row">
+          <input id="db-hash-value" type="text" readonly />
+          <button id="db-copy-hash-btn" class="secondary-btn">Copy</button>
+          <button id="db-use-hash-btn" class="primary-btn">Use</button>
+        </div>
+        <div class="db-hash-row" style="margin-top:4px;">
+          <input id="db-save-name-input" type="text" placeholder="Deck name…" maxlength="32" />
+          <button id="db-save-deck-btn" class="secondary-btn">Save</button>
+        </div>
+        <p id="db-save-error" class="error-text"></p>
+      </div>
+
+      <div class="db-load-area">
+        <label>Load Hash</label>
+        <div class="db-hash-row">
+          <input id="db-load-input" type="text" placeholder="paste deck hash…" />
+          <button id="db-load-btn" class="secondary-btn">Load</button>
+        </div>
+        <p id="db-load-error" class="error-text"></p>
+      </div>
+
+      <div class="db-saved-area">
+        <div class="db-saved-header">
+          <label>Saved Decks</label>
+          <span id="db-saved-count" class="db-saved-count"></span>
+        </div>
+        <div id="db-saved-list" class="db-saved-list"></div>
+        <p id="db-saved-empty" class="db-saved-empty hidden">No saved decks yet.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== GAME VIEW ==================== -->
+<div id="game-view" class="hidden">
+
+  <!-- Lobby overlay (waiting for opponent to join) -->
+  <div id="lobby-overlay" class="hidden">
+    <div class="waiting-box">
+      <div class="spinner"></div>
+      <p>Waiting for opponent to join…</p>
+      <p id="lobby-session-display" style="color:var(--gold);font-size:0.9rem;margin-top:6px;"></p>
+    </div>
+  </div>
+
+  <!-- Waiting overlay -->
+  <div id="waiting-overlay" class="hidden">
+    <div class="waiting-box">
+      <div class="spinner" id="waiting-spinner"></div>
+      <p id="waiting-msg">Waiting for opponent…</p>
+      <button id="gameover-btn" class="primary-btn hidden">OK</button>
+    </div>
+  </div>
+
+  <!-- Mulligan overlay -->
+  <div id="mulligan-overlay" class="hidden">
+    <div class="mulligan-box">
+      <h2>Choose cards to keep</h2>
+      <p id="mulligan-class-name" style="color:var(--gold);font-weight:700;margin-bottom:0.3rem;"></p>
+      <p class="mulligan-hint">Click cards to toggle. Unselected cards will be swapped out.</p>
+      <div id="mulligan-hand"></div>
+      <button id="mulligan-submit-btn" class="primary-btn">Confirm Mulligan</button>
+      <p id="mulligan-waiting" class="hidden" style="margin-top:8px;color:#aaa;">Waiting for opponent…</p>
+    </div>
+  </div>
+
+  <div class="game-grid">
+
+    <!-- Enemy hero bar -->
+    <div id="enemy-hero-bar" class="hero-bar enemy">
+      <span class="hero-name" id="enemy-name">Enemy</span>
+      <span class="hero-class-badge" id="enemy-class-badge"></span>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="enemy-hp-bar"></div>
+        <span class="hp-text" id="enemy-hp-text">30/30</span>
+      </div>
+      <div class="mana-gems" id="enemy-mana-gems"></div>
+      <span class="deck-count" id="enemy-deck-count">Deck: 0</span>
+      <span class="hand-count" id="enemy-hand-count">Hand: 0</span>
+    </div>
+
+    <!-- Enemy board slots -->
+    <div class="board-row enemy-board" id="enemy-board">
+      <div class="board-slot" data-player="enemy" data-slot="0"></div>
+      <div class="board-slot" data-player="enemy" data-slot="1"></div>
+      <div class="board-slot" data-player="enemy" data-slot="2"></div>
+      <div class="board-slot" data-player="enemy" data-slot="3"></div>
+      <div class="board-slot" data-player="enemy" data-slot="4"></div>
+    </div>
+
+    <!-- My board slots -->
+    <div class="board-row my-board" id="my-board">
+      <div class="board-slot" data-player="me" data-slot="0"></div>
+      <div class="board-slot" data-player="me" data-slot="1"></div>
+      <div class="board-slot" data-player="me" data-slot="2"></div>
+      <div class="board-slot" data-player="me" data-slot="3"></div>
+      <div class="board-slot" data-player="me" data-slot="4"></div>
+    </div>
+
+    <!-- My hero bar -->
+    <div id="my-hero-bar" class="hero-bar mine">
+      <span class="hero-name" id="my-name">Me</span>
+      <span class="hero-class-badge" id="my-class-badge"></span>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="my-hp-bar"></div>
+        <span class="hp-text" id="my-hp-text">30/30</span>
+      </div>
+      <div class="mana-gems" id="my-mana-gems"></div>
+      <span class="deck-count" id="my-deck-count">Deck: 0</span>
+      <button id="hero-power-btn" class="hero-power-btn" disabled title="">Hero Power</button>
+    </div>
+
+    <!-- Action queue panel -->
+    <div id="action-queue-panel">
+      <div class="panel-header">
+        <span>Action Queue</span>
+        <span id="mana-remaining-display" class="mana-display">Mana: 0</span>
+      </div>
+      <ul id="action-queue-list"></ul>
+      <div class="panel-footer">
+        <span id="turn-display" class="turn-info">Turn 1</span>
+        <button id="submit-btn" class="primary-btn">Submit</button>
+      </div>
+      <p id="queue-error" class="error-text"></p>
+    </div>
+
+    <!-- Hand area -->
+    <div id="hand-area">
+      <div id="hand-cards"></div>
+    </div>
+
+    <!-- Log area -->
+    <div id="log-area">
+      <div id="log-content"></div>
+    </div>
+
+  </div><!-- .game-grid -->
+</div><!-- #game-view -->
+
+<script src="/static/game.js"></script>
+</body>
+</html>
