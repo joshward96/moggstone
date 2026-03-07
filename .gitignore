@@ -1,1 +1,7 @@
 sessions/
+
+# Card art tools
+tools/.env
+tools/.venv/
+tools/card_images*/
+tools/__pycache__/
